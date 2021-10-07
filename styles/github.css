@@ -1,0 +1,39 @@
+/*!
+ * Theme based on "github" theme from `highlight.js`
+ */
+
+.tshl-keyword {
+  font-weight: bold;
+}
+
+.tshl-function, .tshl-function_method {
+  color: #900;
+}
+
+.tshl-label, .tshl-function_macro, .tshl-constant_builtin, .tshl-number, .tshl-attribute {
+  color: #990073;
+}
+
+.tshl-operator {
+  color: #d65d0e;
+}
+
+.tshl-escape {
+  color: #d79921;
+}
+
+.tshl-string {
+  color: #d65d0e;
+}
+
+.tshl-type, .tshl-type_builtin {
+  color: #0086b3;
+}
+
+.tshl-comment {
+  color: #998;
+}
+
+.tshl-variable_builtin {
+  color: #990073;
+}
