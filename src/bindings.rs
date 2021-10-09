@@ -1,60 +1,54 @@
 use std::iter;
 
-use neon::borrow::Borrow;
-use neon::context::Context;
-use neon::object::Object;
+use neon::prelude::*;
 use neon::result::Throw;
-use neon::types::{JsFunction, JsString, Value};
 
 use crate::Highlighter;
 
-neon::declare_types! {
-    pub class JsHighlighter for Highlighter {
-        init(_cx) {
-            Ok(Highlighter::new())
-        }
+impl Finalize for Highlighter {}
 
-        method highlight(mut cx) {
-            let this = cx.this();
-            let lang = cx.argument::<JsString>(0)?.to_string(&mut cx)?.value();
-            let code = cx.argument::<JsString>(1)?.to_string(&mut cx)?.value();
+fn constructor(mut cx: FunctionContext) -> JsResult<JsBox<Highlighter>> {
+    Ok(cx.boxed(Highlighter::new()))
+}
 
-            let highlighted = {
-                let guard = cx.lock();
-                let highlighter = this.borrow(&guard);
-                highlighter.highlight(&lang, &code)
-            };
+fn highlight(mut cx: FunctionContext) -> JsResult<JsString> {
+    let this = cx.argument::<JsBox<Highlighter>>(0)?;
+    let lang = cx.argument::<JsString>(1)?.to_string(&mut cx)?.value(&mut cx);
+    let code = cx.argument::<JsString>(2)?.to_string(&mut cx)?.value(&mut cx);
 
-            match highlighted {
-                Ok(highlighted) => Ok(cx.string(highlighted).upcast()),
-                Err(crate::HighlightError::UnknownLanguage) => Err(Throw),
-                Err(crate::HighlightError::TreeSitterError) => Err(Throw),
-            }
-        }
+    let highlighted = { this.highlight(&lang, &code) };
 
-        method supportedLanguages(mut cx) {
-            let this = cx.this();
-
-            let languages: Vec<_> = {
-                let guard = cx.lock();
-                let highlighter = this.borrow(&guard);
-                highlighter.supported_languages().map(String::from).collect()
-            };
-
-            let array = cx.empty_array();
-            let push = array.get(&mut cx, "push")?.downcast::<JsFunction>().map_err(|_| Throw)?;
-
-            for lang in languages {
-                let lang = cx.string(lang);
-                push.call(&mut cx, array, iter::once(lang))?;
-            }
-
-            Ok(array.upcast())
-        }
+    match highlighted {
+        Ok(highlighted) => Ok(cx.string(highlighted)),
+        Err(crate::HighlightError::UnknownLanguage) => Err(Throw),
+        Err(crate::HighlightError::TreeSitterError) => Err(Throw),
     }
 }
 
-neon::register_module!(mut cx, {
-    cx.export_class::<JsHighlighter>("Highlighter")?;
+fn supported_languages(mut cx: FunctionContext) -> JsResult<JsArray> {
+    let this = cx.argument::<JsBox<Highlighter>>(0)?;
+
+    let languages: Vec<_> = { this.supported_languages().map(String::from).collect() };
+
+    let array = cx.empty_array();
+    let push = array
+        .get(&mut cx, "push")?
+        .downcast::<JsFunction, _>(&mut cx)
+        .map_err(|_| Throw)?;
+
+    for lang in languages {
+        let lang = cx.string(lang);
+        push.call(&mut cx, array, iter::once(lang))?;
+    }
+
+    Ok(array)
+}
+
+#[neon::main]
+fn main(mut cx: ModuleContext) -> NeonResult<()> {
+    cx.export_function("constructor", constructor)?;
+    cx.export_function("highlight", highlight)?;
+    cx.export_function("supported_languages", supported_languages)?;
+
     Ok(())
-});
+}

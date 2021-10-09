@@ -1,8 +1,8 @@
 {
   "name": "tree-sitter-hl",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Nikola Stoyanov <nikola.da.stoyanov@gmail.com>",
-  "main": "index.node",
+  "main": "index.js",
   "scripts": {
     "build": "cargo build --release && cp target/release/libtree_sitter_hl.so index.node",
     "install": "npm run build",
